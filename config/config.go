@@ -18,7 +18,14 @@ type ServerConfig struct {
 	Version string `env:"SERVER_VERSION,required"`
 }
 
-type DBConfig struct{}
+type DBConfig struct {
+	DbHost     string `env:"DB_HOST,required"`
+	DbPort     string `env:"DB_PORT,required"`
+	DbUser     string `env:"DB_USER,required"`
+	DbPassword string `env:"DB_PASSWORD,required"`
+	DbName     string `env:"DB_NAME,required"`
+	DbSslMode  string `env:"DB_SSLMODE,required"`
+}
 
 func LoadConfig() error {
 	if err := godotenv.Load("app.env"); err != nil {
@@ -38,6 +45,13 @@ func LoadConfig() error {
 	}
 
 	config.ServerConfig = *serverConfig
+
+	dbConfig := &DBConfig{}
+	if err := env.Parse(dbConfig); err != nil {
+		log.Fatal("Error parsing config")
+	}
+
+	config.DBConfig = *dbConfig
 
 	AppConfig = config
 
