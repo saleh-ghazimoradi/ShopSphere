@@ -2,15 +2,34 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/saleh-ghazimoradi/ShopSphere/internal/dto"
+	"github.com/saleh-ghazimoradi/ShopSphere/internal/service"
 	"net/http"
 )
 
 type UserHandler struct {
+	userService service.User
 }
 
 func (u *UserHandler) Register(ctx *fiber.Ctx) error {
+
+	user := dto.UserSignUp{}
+
+	if err := ctx.BodyParser(&user); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "please provide valid input",
+		})
+	}
+
+	token, err := u.userService.Signup(ctx.Context(), user)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "error signing up",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "register",
+		"message": token,
 	})
 }
 func (u *UserHandler) Login(ctx *fiber.Ctx) error {
@@ -64,6 +83,9 @@ func (u *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {
 		"message": "login",
 	})
 }
-func NewUserHandler() *UserHandler {
-	return &UserHandler{}
+
+func NewUserHandler(userService service.User) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+	}
 }
