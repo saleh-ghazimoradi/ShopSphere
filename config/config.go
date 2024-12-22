@@ -11,11 +11,16 @@ var AppConfig *Config
 type Config struct {
 	ServerConfig ServerConfig
 	DBConfig     DBConfig
+	AppSecret    AppSecret
 }
 
 type ServerConfig struct {
 	Port    string `env:"SERVER_PORT,required"`
 	Version string `env:"SERVER_VERSION,required"`
+}
+
+type AppSecret struct {
+	Secret string `env:"APP_SECRET"`
 }
 
 type DBConfig struct {
@@ -52,6 +57,13 @@ func LoadConfig() error {
 	}
 
 	config.DBConfig = *dbConfig
+
+	appSecret := &AppSecret{}
+	if err := env.Parse(appSecret); err != nil {
+		log.Fatal("Error parsing config")
+	}
+
+	config.AppSecret = *appSecret
 
 	AppConfig = config
 
