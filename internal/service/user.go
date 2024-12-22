@@ -2,16 +2,17 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/dto"
+	"github.com/saleh-ghazimoradi/ShopSphere/internal/helper"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/repository"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/service/serviceModels"
-	"log"
 )
 
 type User interface {
 	Signup(ctx context.Context, input dto.UserSignUp) (string, error)
 	findUserByEmail(ctx context.Context, email string) (*serviceModels.User, error)
-	Login(ctx context.Context, input any) (string, error)
+	Login(ctx context.Context, email, password string) (string, error)
 	GetVerificationCode(ctx context.Context, user serviceModels.User) (int, error)
 	VerifyCode(ctx context.Context, id uint, code int) error
 	CreateProfile(ctx context.Context, id uint, input any) error
@@ -27,19 +28,46 @@ type User interface {
 
 type UserService struct {
 	userRepository repository.User
+	authService    helper.Auth
 }
 
 func (u *UserService) Signup(ctx context.Context, input dto.UserSignUp) (string, error) {
-	log.Println(input)
 
-	return "this is my token", nil
+	hPassword, err := u.authService.CreateHashedPassword(input.Password)
+	if err != nil {
+		return "", err
+	}
+
+	user, err := u.userRepository.CreateUser(ctx, &serviceModels.User{
+		Email:    input.Email,
+		Password: hPassword,
+		Phone:    input.Phone,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return u.authService.GenerateToken(user.ID, user.Email, user.UserType)
 }
+
 func (u *UserService) findUserByEmail(ctx context.Context, email string) (*serviceModels.User, error) {
-	return nil, nil
+	return u.userRepository.FindUser(ctx, email)
 }
-func (u *UserService) Login(ctx context.Context, input any) (string, error) {
-	return "", nil
+
+func (u *UserService) Login(ctx context.Context, email, password string) (string, error) {
+	user, err := u.findUserByEmail(ctx, email)
+	if err != nil {
+		return "", errors.New("user not found")
+	}
+
+	err = u.authService.VerifyPassword(password, user.Password)
+	if err != nil {
+		return "", errors.New("wrong password")
+	}
+
+	return u.authService.GenerateToken(user.ID, user.Email, user.UserType)
 }
+
 func (u *UserService) GetVerificationCode(ctx context.Context, user serviceModels.User) (int, error) {
 	return 0, nil
 }
@@ -74,8 +102,9 @@ func (u *UserService) GetOrderById(ctx context.Context, id uint, uId uint) (any,
 	return nil, nil
 }
 
-func NewUserService(userRepository repository.User) User {
+func NewUserService(userRepository repository.User, authService helper.Auth) User {
 	return &UserService{
 		userRepository: userRepository,
+		authService:    authService,
 	}
 }
