@@ -21,7 +21,7 @@ type User interface {
 	CreateProfile(ctx context.Context, id uint, input any) error
 	GetProfile(ctx context.Context, id uint) (*serviceModels.User, error)
 	UpdateProfile(ctx context.Context, id uint, input any) error
-	BecomeSeller(ctx context.Context, id uint, input any) (string, error)
+	BecomeSeller(ctx context.Context, id uint, input dto.SellerInput) (string, error)
 	FindCart(ctx context.Context, id uint) ([]any, error)
 	CreateCart(ctx context.Context, input any, user serviceModels.User) ([]any, error)
 	CreateOrder(ctx context.Context, user serviceModels.User) (int, error)
@@ -156,8 +156,42 @@ func (u *UserService) UpdateProfile(ctx context.Context, id uint, input any) err
 	return nil
 }
 
-func (u *UserService) BecomeSeller(ctx context.Context, id uint, input any) (string, error) {
-	return "", nil
+func (u *UserService) BecomeSeller(ctx context.Context, id uint, input dto.SellerInput) (string, error) {
+	user, err := u.userRepository.FindUserById(ctx, id)
+	if err != nil {
+		return "", err
+	}
+
+	if user.UserType == serviceModels.SELLER {
+		return "", errors.New("you have already joined seller program")
+	}
+
+	seller, err := u.userRepository.UpdateUser(ctx, id, &serviceModels.User{
+		FirstName: input.Firstname,
+		LastName:  input.Lastname,
+		Phone:     input.PhoneNumber,
+		UserType:  serviceModels.SELLER,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	token, err := u.authService.GenerateToken(user.ID, user.Email, seller.UserType)
+	if err != nil {
+		return "", err
+	}
+
+	account := serviceModels.BankAccount{
+		BankAccount: input.BankAccount,
+		SwiftCode:   input.SwiftCode,
+		PaymentType: input.PaymentType,
+		UserId:      id,
+	}
+
+	err = u.userRepository.CreateBankAccount(ctx, &account)
+
+	return token, err
 }
 
 func (u *UserService) FindCart(ctx context.Context, id uint) ([]any, error) {
