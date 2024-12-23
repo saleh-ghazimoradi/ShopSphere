@@ -1,16 +1,20 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gofiber/fiber/v2"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/dto"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/helper"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/service"
+	"github.com/saleh-ghazimoradi/ShopSphere/pkg/notification"
+	"log"
 	"net/http"
 )
 
 type UserHandler struct {
-	userService service.User
-	authService helper.Auth
+	userService  service.User
+	authService  helper.Auth
+	notifyClient notification.NotifyClient
 }
 
 func (u *UserHandler) Register(ctx *fiber.Ctx) error {
@@ -60,14 +64,54 @@ func (u *UserHandler) Login(ctx *fiber.Ctx) error {
 }
 
 func (u *UserHandler) GetVerificationCode(ctx *fiber.Ctx) error {
+
+	user, err := u.authService.GetCurrentUser(ctx)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "please provide correct user id password",
+		})
+	}
+
+	log.Println("user", user)
+
+	err = u.userService.GetVerificationCode(context.Background(), user)
+	log.Println(err)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(&fiber.Map{
+			"message": "unable to generate verification code",
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "login",
+		"message": "get verification code",
 	})
 }
 
 func (u *UserHandler) Verify(ctx *fiber.Ctx) error {
+	user, err := u.authService.GetCurrentUser(ctx)
+	if err != nil {
+		return ctx.Status(http.StatusInternalServerError).JSON(fiber.Map{
+			"message": "please provide correct user id password",
+		})
+	}
+
+	var req dto.VerificationCodeInput
+
+	if err = ctx.BodyParser(&req); err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": "please provide valid input",
+		})
+	}
+
+	err = u.userService.VerifyCode(context.Background(), user.ID, req.Code)
+	if err != nil {
+		return ctx.Status(http.StatusBadRequest).JSON(fiber.Map{
+			"message": err.Error(),
+		})
+	}
+
 	return ctx.Status(http.StatusOK).JSON(&fiber.Map{
-		"message": "login",
+		"message": "successfully verified",
 	})
 }
 
@@ -122,9 +166,10 @@ func (u *UserHandler) BecomeSeller(ctx *fiber.Ctx) error {
 	})
 }
 
-func NewUserHandler(userService service.User, authService helper.Auth) *UserHandler {
+func NewUserHandler(userService service.User, authService helper.Auth, notifyClient notification.NotifyClient) *UserHandler {
 	return &UserHandler{
-		userService: userService,
-		authService: authService,
+		userService:  userService,
+		authService:  authService,
+		notifyClient: notifyClient,
 	}
 }
