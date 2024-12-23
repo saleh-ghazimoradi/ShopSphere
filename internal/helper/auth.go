@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/saleh-ghazimoradi/ShopSphere/config"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/service/serviceModels"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
@@ -114,6 +115,10 @@ func (a *Auth) GetCurrentUser(ctx *fiber.Ctx) (*serviceModels.User, error) {
 	user := ctx.Locals("user")
 	return user.(*serviceModels.User), nil
 
+}
+
+func (a *Auth) GenerateCode() (int, error) {
+	return RandomNumbers(config.AppConfig.Necessities.RandomNumbers)
 }
 
 func NewAuth(secret string) Auth {
