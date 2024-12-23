@@ -12,6 +12,7 @@ type Config struct {
 	ServerConfig ServerConfig
 	DBConfig     DBConfig
 	AppSecret    AppSecret
+	Necessities  Necessities
 }
 
 type ServerConfig struct {
@@ -21,6 +22,14 @@ type ServerConfig struct {
 
 type AppSecret struct {
 	Secret string `env:"APP_SECRET"`
+}
+
+type Necessities struct {
+	RandomNumbers int    `env:"RANDOM_NUMBERS"`
+	AccountSMSSid string `env:"ACCOUNT_SMSSID"`
+	AuthToken     string `env:"AUTH_TOKEN"`
+	SetTO         string `env:"SET_TO"`
+	SetFROM       string `env:"SET_FROM"`
 }
 
 type DBConfig struct {
@@ -64,6 +73,13 @@ func LoadConfig() error {
 	}
 
 	config.AppSecret = *appSecret
+
+	necessities := &Necessities{}
+	if err := env.Parse(necessities); err != nil {
+		log.Fatal("Error parsing config")
+	}
+
+	config.Necessities = *necessities
 
 	AppConfig = config
 
