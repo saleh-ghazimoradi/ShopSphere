@@ -7,14 +7,16 @@ import (
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/helper"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/repository"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/service"
+	"github.com/saleh-ghazimoradi/ShopSphere/pkg/notification"
 	"gorm.io/gorm"
 )
 
 func UserRoutes(app *fiber.App, db *gorm.DB) {
 	userRepository := repository.NewUserRepository(db)
 	authService := helper.NewAuth(config.AppConfig.AppSecret.Secret)
-	userService := service.NewUserService(userRepository, authService)
-	user := handlers.NewUserHandler(userService, authService)
+	notifyClient := notification.NewNotifyClient()
+	userService := service.NewUserService(userRepository, authService, notifyClient)
+	user := handlers.NewUserHandler(userService, authService, notifyClient)
 
 	// Public routes
 	pubRoutes := app.Group("/users")
