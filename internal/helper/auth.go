@@ -8,6 +8,7 @@ import (
 	"github.com/saleh-ghazimoradi/ShopSphere/config"
 	"github.com/saleh-ghazimoradi/ShopSphere/internal/service/serviceModels"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -119,6 +120,25 @@ func (a *Auth) GetCurrentUser(ctx *fiber.Ctx) (*serviceModels.User, error) {
 
 func (a *Auth) GenerateCode() (int, error) {
 	return RandomNumbers(config.AppConfig.Necessities.RandomNumbers)
+}
+
+func (a *Auth) AuthorizeSeller(ctx *fiber.Ctx) error {
+	authHeader := ctx.Get("Authorization")
+	user, err := a.VerifyToken(authHeader)
+	if err != nil {
+		return ctx.Status(http.StatusUnauthorized).JSON(&fiber.Map{
+			"message": "authorization failed",
+			"reason":  err,
+		})
+	} else if user.ID > 0 && user.UserType == serviceModels.SELLER {
+		ctx.Locals("user", user)
+		return ctx.Next()
+	} else {
+		return ctx.Status(http.StatusUnauthorized).JSON(&fiber.Map{
+			"message": "authorization failed",
+			"reason":  errors.New("please join seller program to manage products"),
+		})
+	}
 }
 
 func NewAuth(secret string) Auth {
