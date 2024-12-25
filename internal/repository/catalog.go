@@ -10,9 +10,9 @@ import (
 type Catalog interface {
 	CreateCategory(ctx context.Context, category *serviceModels.Category) error
 	FindCategories(ctx context.Context) ([]*serviceModels.Category, error)
-	FindCategoryById(ctx context.Context, id uint) (*serviceModels.Category, error)
+	FindCategoryById(ctx context.Context, id int) (*serviceModels.Category, error)
 	EditCategory(ctx context.Context, category *serviceModels.Category) (*serviceModels.Category, error)
-	DeleteCategory(ctx context.Context, id uint) error
+	DeleteCategory(ctx context.Context, id int) error
 }
 
 type catalogRepository struct {
@@ -37,7 +37,7 @@ func (c *catalogRepository) FindCategories(ctx context.Context) ([]*serviceModel
 	return categories, nil
 }
 
-func (c *catalogRepository) FindCategoryById(ctx context.Context, id uint) (*serviceModels.Category, error) {
+func (c *catalogRepository) FindCategoryById(ctx context.Context, id int) (*serviceModels.Category, error) {
 	category := &serviceModels.Category{}
 	err := c.db.WithContext(ctx).First(category, id).Error
 	if err != nil {
@@ -54,7 +54,7 @@ func (c *catalogRepository) EditCategory(ctx context.Context, category *serviceM
 	return category, nil
 }
 
-func (c *catalogRepository) DeleteCategory(ctx context.Context, id uint) error {
+func (c *catalogRepository) DeleteCategory(ctx context.Context, id int) error {
 	if err := c.db.WithContext(ctx).Delete(&serviceModels.Category{}, id).Error; err != nil {
 		return errors.New("delete category failed")
 	}
