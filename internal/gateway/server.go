@@ -17,6 +17,7 @@ func Server() error {
 
 	routes.HealthCheck(app)
 	routes.UserRoutes(app, db)
+	routes.CatalogRoutes(app, db)
 
 	if err = app.Listen(config.AppConfig.ServerConfig.Port); err != nil {
 		return err
