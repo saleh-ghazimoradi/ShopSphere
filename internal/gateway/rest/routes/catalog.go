@@ -17,12 +17,12 @@ func CatalogRoutes(app *fiber.App, db *gorm.DB) {
 	catalog := handlers.NewCatalogHandler(catalogService, authService)
 
 	// Listing Products and Categories
-	app.Get("/products")
-	app.Get("/products/:id")
-	app.Get("/categories")
-	app.Get("/categories/:id")
+	app.Get("/products", catalog.GetProducts)
+	app.Get("/products/:id", catalog.GetProduct)
+	app.Get("/categories", catalog.GetCategories)
+	app.Get("/categories/:id", catalog.GetCategoryById)
 
-	sellerRoutes := app.Group("/sellers", authService.AuthorizeSeller)
+	sellerRoutes := app.Group("/seller", authService.AuthorizeSeller)
 	// Categories
 	sellerRoutes.Post("/categories", catalog.CreateCategories)
 	sellerRoutes.Patch("/categories/:id", catalog.EditCategory)
